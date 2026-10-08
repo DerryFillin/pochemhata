@@ -156,7 +156,7 @@ const score = err => err <= 0.03 ? 1000 : Math.max(0, Math.round(1000 * Math.pow
 const heat = err => err <= 0.03 ? ['В точку','hit','🟩'] : err <= 0.10 ? ['Горячо','hot','🟧'] : err <= 0.25 ? ['Тепло','warm','🟨'] : ['Холодно','cold','🟦'];
 const fmt = n => Math.round(n).toLocaleString('ru-RU');
 const years = n => { const k=Math.round(n), a=k%10, c=k%100; return k+' '+(a===1&&c!==11?'год':a>=2&&a<=4&&(c<12||c>14)?'года':'лет'); };
-const pts = n => { const a=n%10, c=n%100; return n+' '+(a===1&&c!==11?'очко':a>=2&&a<=4&&(c<12||c>14)?'очка':'очков'); };
+const ptsWord = n => { const a=n%10, c=n%100; return n+' '+(a===1&&c!==11?'очко':a>=2&&a<=4&&(c<12||c>14)?'очка':'очков'); };
 const mln = n => (n/1e6).toLocaleString('ru-RU',{maximumFractionDigits:2});
 const $ = id => document.getElementById(id);
 const SITE = 'https://derryfillin.github.io/pochemhata/';
@@ -250,7 +250,7 @@ $('f1').addEventListener('submit', e => {
   if (err <= 0.03 || st.tries.length >= MAXT){
     lock('f1',true); $('f1').hidden = true; $('tabs').hidden = true;
     st.pricePts = st.best;
-    $('h1').insertAdjacentHTML('beforeend', `<div class="row"><span class="stamp ${st.best>=600?'ok':''}">${pts(st.best)}</span><span class="small">Цена ${fmt(p)} ₽. Засчитана лучшая попытка.</span></div>`);
+    $('h1').insertAdjacentHTML('beforeend', `<div class="row"><span class="stamp ${st.best>=600?'ok':''}">${ptsWord(st.best)}</span><span class="small">Цена ${fmt(p)} ₽. Засчитана лучшая попытка.</span></div>`);
     $('s2').hidden = false; $('g2').focus();
   } else $('g1').focus();
 });
@@ -261,7 +261,7 @@ $('f2').addEventListener('submit', e => {
   const est = rentEst(st.o), err = Math.abs(g-est)/est;
   st.rentPts = score(err);
   lock('f2',true); $('f2').hidden = true;
-  $('r2').innerHTML = `<div class="row"><span class="stamp ${st.rentPts>=600?'ok':''}">${pts(st.rentPts)}</span><span class="small">Ваш ответ ${fmt(g)} ₽. Такие сдают примерно за <b>${fmt(est)} ₽/мес</b> (${rateNote(st.o)})</span></div>`;
+  $('r2').innerHTML = `<div class="row"><span class="stamp ${st.rentPts>=600?'ok':''}">${ptsWord(st.rentPts)}</span><span class="small">Ваш ответ ${fmt(g)} ₽. Такие сдают примерно за <b>${fmt(est)} ₽/мес</b> (${rateNote(st.o)})</span></div>`;
   reveal();
 }); 
 
