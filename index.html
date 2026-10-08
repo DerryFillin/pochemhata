@@ -84,7 +84,7 @@ a{color:var(--ink)}
   <header>
     <h1>Почём хата?</h1>
     <div class="hdr"><span class="meta"><span id="no"></span> · Саратов и Энгельс · реальные объявления</span>
-    <button class="ghost sm" id="invite">Позвать друга</button></div>
+    <button class="sm" id="skip">Следующая →</button><button class="ghost sm" id="invite">Позвать друга</button></div>
   </header>
   <div class="sharebox" id="sharebox" hidden></div>
   <div class="cols">
@@ -133,7 +133,7 @@ a{color:var(--ink)}
         <div class="share" id="share"></div>
         <div class="row">
           <button id="send">Отправить другу</button>
-          <button class="ghost" id="more">Ещё квартира</button>
+          <button class="ghost" id="more">Следующая квартира →</button>
         </div>
         <div class="sharebox" id="sharebox2" hidden></div>
       </section>
@@ -168,8 +168,18 @@ function openShare(box, text, url){
 }
 const start = new Date(2026,9,8);
 const dayNo = Math.max(0, Math.floor((new Date().setHours(0,0,0,0) - start) / 864e5));
-let idx = dayNo % DATA.pool.length, practice = false, fromFriend = false, st, pi = 0;
-try { const k = new URLSearchParams(location.search).get('k'); const j = DATA.pool.findIndex(p=>p.id===k); if (j>=0 && j!==idx) { idx = j; fromFriend = true; } } catch(_) {}
+const N = DATA.pool.length, DAILY = dayNo % N;
+let idx = DAILY, fromFriend = false, st, pi = 0;
+// какие квартиры этот браузер уже видел — чтобы при новом заходе открывалась новая
+let seen = [];
+try { seen = JSON.parse(localStorage.getItem('ph_seen')||'[]'); } catch(_) {}
+const saveSeen = () => { try { localStorage.setItem('ph_seen', JSON.stringify(seen)); } catch(_) {} };
+function nextUnseen(from){
+  for (let s=1; s<=N; s++){ const j=(from+s)%N; if (!seen.includes(DATA.pool[j].id)) return j; }
+  seen = []; saveSeen(); return (from+1)%N;   // все пройдены — круг заново
+}
+try { const k = new URLSearchParams(location.search).get('k'); const j = DATA.pool.findIndex(p=>p.id===k); if (j>=0) { idx = j; fromFriend = true; } } catch(_) {}
+if (!fromFriend && seen.includes(DATA.pool[DAILY].id)) idx = nextUnseen(DAILY);
 
 function parsePrice(s){
   let v = parseFloat(String(s).replace(/\s/g,'').replace(',','.'));
@@ -190,7 +200,8 @@ function showPhoto(i){
 function load(){
   const o = DATA.pool[idx];
   st = {o, tries:[], won:false, rent:null};
-  $('no').textContent = practice ? 'Тренировка' : fromFriend ? 'Квартира от друга' : 'Хата дня №' + (dayNo+1);
+  if (!seen.includes(o.id)) { seen.push(o.id); saveSeen(); }
+  $('no').textContent = (fromFriend ? 'Квартира от друга' : idx===DAILY ? 'Хата дня' : 'Квартира') + ` · пройдено ${Math.min(seen.length,N)} из ${N}`;
   $('sharebox2').hidden = true;
   $('ttl').textContent = (o.r===1?'1-комнатная':'2-комнатная') + ', ' + String(o.a).replace('.',',') + ' м²';
   $('addr').textContent = o.ad;
@@ -246,7 +257,7 @@ function reveal(est){
     `<div class="small">Длина полосы — сколько лет возвращать ${mln(p)} млн. Вклад вернёт их за ${f1(depY)} года.</div>`;
   $('calc').textContent = `Расчёт: ${fmt(est)} ₽ × 11 месяцев (месяц простоя) − 4% налог самозанятого − ${fmt(UPKEEP)} ₽ в год на мелкий ремонт = ${fmt(net)} ₽ чистыми в год.`;
   const sq = st.tries.map(d=> Math.abs(d)<=.05?'🟩':Math.abs(d)<=.15?'🟨':'🟥').join('');
-  $('share').textContent = `Почём хата? ${practice||fromFriend?'':'№'+(dayNo+1)+' '}· Саратов\nЦена ${sq} ${st.won?st.tries.length:'✗'}/${MAXT}\nАренда: ${st.rent}\nОкупится за ${years(yrs)}, вклад — за ${years(depY)}`;
+  $('share').textContent = `Почём хата? · Саратов\nЦена ${sq} ${st.won?st.tries.length:'✗'}/${MAXT}\nАренда: ${st.rent}\nОкупится за ${years(yrs)}, вклад — за ${years(depY)}`;
   $('s3').hidden = false;
 }
 
@@ -260,10 +271,8 @@ $('photo').addEventListener('pointerup', e=>{ if(sx===null) return; const dx = e
 $('more-desc').onclick = () => { const c=$('desc').classList.toggle('clamp'); $('more-desc').textContent = c?'Читать полностью':'Свернуть'; };
 $('send').onclick = () => openShare('sharebox2', $('share').textContent + '\nСможешь точнее? Та же квартира:', SITE + '?k=' + st.o.id);
 $('invite').onclick = () => openShare('sharebox', INVITE, SITE);
-$('more').onclick = () => {
-  practice = true; fromFriend = false; let n; do { n = Math.floor(Math.random()*DATA.pool.length); } while (n===idx); idx = n; load();
-  window.scrollTo({top:0,behavior:'smooth'});
-};
+const goNext = () => { fromFriend = false; idx = nextUnseen(idx); load(); window.scrollTo({top:0,behavior:'smooth'}); };
+$('more').onclick = goNext; $('skip').onclick = goNext;
 load();
 </script>
 </body></html>
